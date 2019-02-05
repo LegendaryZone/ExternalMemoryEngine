@@ -13,11 +13,11 @@
 *More information about the used functions and structures here, in usage order:
 *
 *CreateToolhelp32Snapshot()	= https://docs.microsoft.com/en-us/windows/desktop/api/tlhelp32/nf-tlhelp32-createtoolhelp32snapshot
-*Process32First()			= https://docs.microsoft.com/ro-ro/windows/desktop/api/tlhelp32/nf-tlhelp32-process32first
-*Process32Next()			= https://docs.microsoft.com/ro-ro/windows/desktop/api/tlhelp32/nf-tlhelp32-process32next
+*Process32First()		= https://docs.microsoft.com/ro-ro/windows/desktop/api/tlhelp32/nf-tlhelp32-process32first
+*Process32Next()		= https://docs.microsoft.com/ro-ro/windows/desktop/api/tlhelp32/nf-tlhelp32-process32next
 *PROCESSENTRY32 structure	= https://docs.microsoft.com/ro-ro/windows/desktop/api/tlhelp32/ns-tlhelp32-tagprocessentry32
-*Module32First()			= https://docs.microsoft.com/ro-ro/windows/desktop/api/tlhelp32/nf-tlhelp32-module32first
-*Module32Next()				= https://docs.microsoft.com/ro-ro/windows/desktop/api/tlhelp32/nf-tlhelp32-module32next
+*Module32First()		= https://docs.microsoft.com/ro-ro/windows/desktop/api/tlhelp32/nf-tlhelp32-module32first
+*Module32Next()			= https://docs.microsoft.com/ro-ro/windows/desktop/api/tlhelp32/nf-tlhelp32-module32next
 *MODULEENTRY32 structure	= https://docs.microsoft.com/ro-ro/windows/desktop/api/tlhelp32/ns-tlhelp32-tagmoduleentry32
 
 *ReadProcessMemory()		= https://docs.microsoft.com/en-us/windows/desktop/api/memoryapi/nf-memoryapi-readprocessmemory

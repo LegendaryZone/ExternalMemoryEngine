@@ -102,12 +102,18 @@ uintptr_t mem::getOffset(uintptr_t BaseAddress, size_t ModuleSize, const char *S
 	//The number of bytes to scan.
 	int SignatureSize = strlen(SignatureMask);
 
+	//We parse our signature string to step through each byte.
+	char *ParsedSignature = (char*)calloc(SignatureSize * 2 + 1, sizeof(char));
+	for (int i = 0; i < SignatureSize; i++)
+		strncat(ParsedSignature, Signature + 2 + i * 4, 2);	//Formula to parse signature string
+
+	//The bytes we are going to read.
+	BYTE *BytesRead = (BYTE *)calloc(SignatureSize + 1, sizeof(BYTE));
+
 	//Start scanning.
 	do {
 		//The current address.We start from here and scan 'SignatureSize' number of bytes.
 		uintptr_t CurrentAddress = BaseAddress + Step;
-		//The bytes we are going to read.
-		BYTE *BytesRead = (BYTE *)malloc(sizeof(BYTE) * SignatureSize + 1);
 
 		//Read the current address and save the first 'SignatureSize' number of bytes.
 		if (ReadProcessMemory(hProcess, (BYTE*)CurrentAddress, BytesRead, SignatureSize, NULL))
@@ -119,15 +125,11 @@ uintptr_t mem::getOffset(uintptr_t BaseAddress, size_t ModuleSize, const char *S
 			{
 				//We convert each byte to a char array.
 				char CurrentByte[3] = "";
-				sprintf_s(CurrentByte, "%.2X", (uintptr_t)(BytesRead[i]));	//Convert byte to hex
-
-				//We parse our signature string to step through each byte.
-				char CurrentSignatureByte[3] = "";
-				strncpy_s(CurrentSignatureByte, Signature + 2 + i * 4, 2);	//Formula to parse signature string
+				sprintf(CurrentByte, "%.2X", (uintptr_t)(BytesRead[i]));	//Convert byte to hex
 
 				//If the mask indicates that there is a valid byte, we then compare each read byte with the ones from our signature.
 				//This statement is negated.
-				if (SignatureMask[i] == 'x' && strcmp(CurrentByte, CurrentSignatureByte) != 0)
+				if (SignatureMask[i] == 'x' && (ParsedSignature[i * 2] != CurrentByte[0] || ParsedSignature[i * 2 + 1] != CurrentByte[1]))
 				{
 					//The read bytes didn't match our signature so we stop comparing.
 					Found = FALSE;
@@ -140,7 +142,7 @@ uintptr_t mem::getOffset(uintptr_t BaseAddress, size_t ModuleSize, const char *S
 		if (Found)
 		{
 			//Temporary buffer used for conversion.
-			char TempBuffer[9] = "";	//9 = An octet + 1
+			char TempBuffer[17] = "";	//17 = Two octets + 1 (to support 64bit addresses)
 
 			//We step through our read bytes once more in order to extract our offset.
 			for (int i = SignatureSize - 1; i >= 0; i--)
@@ -149,23 +151,26 @@ uintptr_t mem::getOffset(uintptr_t BaseAddress, size_t ModuleSize, const char *S
 				{
 					//We convert each byte to a char array.
 					char CurrentByte[3] = "";
-					sprintf_s(CurrentByte, "%.2X", (uintptr_t)(BytesRead[i]));	//Convert byte to hex
+					sprintf(CurrentByte, "%.2X", (uintptr_t)(BytesRead[i]));	//Convert byte to hex
 
 					//We concatenate each converted byte to our temporary buffer.
-					strcat_s(TempBuffer, CurrentByte);
+					strcat(TempBuffer, CurrentByte);
 				}
 			//We free our memory.
 			free(BytesRead);
+			free(ParsedSignature);
 
 			//We convert our temporary char array to an unsigned int and return it.
 			return (uintptr_t)(strtoul(TempBuffer, NULL, 16));
 		}
 
-		//We free our memory.
-		free(BytesRead);
 		//We go to the next address.
 		Step++;
 	} while (Found == FALSE && Step < ModuleSize);
+
+	//We free our memory.
+	free(BytesRead);
+	free(ParsedSignature);
 
 	//We have failed to find the offset.
 	std::cout << "Can't find offset..." << std::endl;

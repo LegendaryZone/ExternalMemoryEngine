@@ -37,7 +37,7 @@ DWORD mem::getProcessId(wchar_t *ProcessName)
 MODULEENTRY32 mem::getModule(DWORD ProcessId, wchar_t *ModuleName)
 {
     if (!ProcessId)
-    return { 0 };
+		return { 0 };
     
     //A struct that holds data about the current module.
     MODULEENTRY32 sEntryModule = { 0 };
@@ -101,7 +101,7 @@ BOOL mem::writeAddress(void *Data, size_t DataSize, uintptr_t Address, HANDLE hP
 uintptr_t mem::getOffset(uintptr_t BaseAddress, size_t ModuleSize, const char *Signature, const char *SignatureMask, HANDLE hProcess)
 {
     if (!BaseAddress)
-    return 0;
+		return 0;
     
     //So we know when to stop searching.
     BOOL Found = FALSE;

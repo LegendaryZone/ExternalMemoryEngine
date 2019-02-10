@@ -1,7 +1,6 @@
-#include <iostream>
 #include "mem.h"
 
-DWORD mem::getProcessId(wchar_t *ProcessName)
+DWORD getProcessId(wchar_t *ProcessName)
 {
 	//Take a snapshot of all active processes.
 	HANDLE hProcessList = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
@@ -29,12 +28,11 @@ DWORD mem::getProcessId(wchar_t *ProcessName)
 	}
 
 	//Something failed.
-	std::cout << "Can't find process id..." << std::endl;
 	CloseHandle(hProcessList);
 	return 0;
 }
 
-MODULEENTRY32 mem::getModule(DWORD ProcessId, wchar_t *ModuleName)
+MODULEENTRY32 getModule(DWORD ProcessId, wchar_t *ModuleName)
 {
 	if (!ProcessId)
 		return { 0 };
@@ -65,18 +63,17 @@ MODULEENTRY32 mem::getModule(DWORD ProcessId, wchar_t *ModuleName)
 	}
 
 	//Something failed.
-	std::cout << "Can't find module..." << std::endl;
 	CloseHandle(hModuleList);
 	return { 0 };
 }
 
-BOOL mem::readAddress(void *AddressValue, size_t DataSize, uintptr_t Address, HANDLE hProcess)
+BOOL readAddress(void *AddressValue, size_t DataSize, uintptr_t Address, HANDLE hProcess)
 {
 	//Attempt to read the address value.
 	return ReadProcessMemory(hProcess, (BYTE*)Address, AddressValue, DataSize, NULL);
 }
 
-uintptr_t mem::getAddress(uintptr_t BaseAddress, std::vector<uintptr_t> vOffsets, HANDLE hProcess)
+uintptr_t getAddress(uintptr_t BaseAddress, std::vector<uintptr_t> vOffsets, HANDLE hProcess)
 {
 	//Temporary address used to resolve the base address.
 	uintptr_t Address = BaseAddress;
@@ -86,19 +83,19 @@ uintptr_t mem::getAddress(uintptr_t BaseAddress, std::vector<uintptr_t> vOffsets
 
 	//Resolve the base address.
 	for (int i = 0; i < OffsetCount; i++)
-		if (mem::readAddress(&Address, sizeof(Address), Address, hProcess))
+		if (readAddress(&Address, sizeof(Address), Address, hProcess))
 			Address += vOffsets[i];
 
 	return Address;
 }
 
-BOOL mem::writeAddress(void *Data, size_t DataSize, uintptr_t Address, HANDLE hProcess)
+BOOL writeAddress(void *Data, size_t DataSize, uintptr_t Address, HANDLE hProcess)
 {
 	//Attempt to write the given data at the address location.
 	return WriteProcessMemory(hProcess, (BYTE*)Address, Data, DataSize, NULL);
 }
 
-uintptr_t mem::getOffset(uintptr_t BaseAddress, size_t ModuleSize, const char *Signature, const char *SignatureMask, HANDLE hProcess)
+uintptr_t getOffset(uintptr_t BaseAddress, size_t ModuleSize, const char *Signature, const char *SignatureMask, HANDLE hProcess)
 {
 	if (!BaseAddress)
 		return 0;
@@ -140,25 +137,35 @@ uintptr_t mem::getOffset(uintptr_t BaseAddress, size_t ModuleSize, const char *S
 	} while (Found == FALSE && Step < ModuleSize);
 
 	//If our signature matches the read bytes, we assume we have found the offset and return it.
+	//This method of parsing the bytes is easily customizable.
 	if (Found)
 	{
-		//Calculate our offset.
-		uintptr_t Offset = *((uintptr_t*)BytesRead) - *((uintptr_t*)Signature);
+		//Temporary buffer used for conversion.
+		char TempBuffer[17] = "";	//17 = Two octets + 1 (to support 64bit addresses)
 
-		//Remove the 'end' zeroes. (EG: for the F8 offset, we might get something like F8000 instead of 000F8).
-		while (Offset % 16 == 0)	//Base 16 = hex
-			Offset /= 16;			//Remove the zero
+		//We step through our read bytes once more in order to extract our offset.
+		for (int i = SignatureSize - 1; i >= 0; i--)
+			//We extract the offset.
+			if (SignatureMask[i] == '?')
+			{
+				//We convert each byte to a char array.
+				char CurrentByte[3] = "";
+				//Convert byte to hex
+				sprintf(CurrentByte, "%.2X", (uintptr_t)(BytesRead[i]));
 
+				//We concatenate each converted byte to our temporary buffer.
+				strcat(TempBuffer, CurrentByte);
+			}
 		//We free our memory.
 		free(BytesRead);
 
-		return Offset;
+		//We convert our temporary char array to an unsigned int and return it.
+		return (uintptr_t)(strtoul(TempBuffer, NULL, 16));
 	}
+
+	//We have failed to find the offset.
 
 	//We free our memory.
 	free(BytesRead);
-
-	//We have failed to find the offset.
-	std::cout << "Can't find offset..." << std::endl;
 	return 0;
 }
